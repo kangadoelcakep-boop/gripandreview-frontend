@@ -1,7 +1,12 @@
 // review.js
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 review.js start");
+console.log("✅ review.js loaded");
 
+document.addEventListener("DOMContentLoaded", () => {
+  const API_URL = window.Config?.API_URL;
+  if (!API_URL) {
+    console.error("❌ API_URL not found in config.js");
+    return;
+  }
   // Ambil elemen
   const emailForm = document.getElementById("email-validate-form");
   const emailInput = document.getElementById("validate-email");
