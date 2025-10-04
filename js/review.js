@@ -9,20 +9,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const reviewForm = document.getElementById("review-form");
-  const reviewMessage = document.getElementById("reviewMessage");
+  const reviewList = document.getElementById("review-list");
 
-  if (!reviewForm || !reviewMessage) return;
+  if (!reviewForm) return;
 
+  // ⭐️ Rating Handler
+  const stars = document.querySelectorAll("#star-rating span");
+  const ratingInput = document.getElementById("rating");
+
+  stars.forEach((star) => {
+    star.addEventListener("click", () => {
+      const value = star.getAttribute("data-value");
+      ratingInput.value = value;
+
+      // highlight bintang
+      stars.forEach((s, i) => {
+        s.style.color = i < value ? "gold" : "#ccc";
+      });
+    });
+  });
+
+  // 📝 Submit Review
   reviewForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById("reviewEmail")?.value.trim();
-    const name = document.getElementById("reviewName")?.value.trim();
-    const seller = document.getElementById("reviewSeller")?.value.trim();
-    const content = document.getElementById("reviewContent")?.value.trim();
+    const payload = {
+      name: document.getElementById("nama")?.value.trim(),
+      email: document.getElementById("email")?.value.trim(),
+      rating: ratingInput.value,
+      review: document.getElementById("reviewText")?.value.trim(),
+      marketplace: document.getElementById("marketplace")?.value,
+      seller: document.getElementById("seller")?.value.trim()
+    };
 
-    if (!email || !content) {
-      reviewMessage.textContent = "❌ Email & isi review wajib diisi";
+    if (!payload.email || !payload.review) {
+      alert("❌ Email dan ulasan wajib diisi!");
       return;
     }
 
@@ -30,14 +51,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(`${API_URL}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, seller, content })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
-      reviewMessage.textContent = data.message || "✅ Review berhasil dikirim!";
+      alert(data.message || "✅ Ulasan berhasil dikirim!");
+
+      // tampilkan ulasan langsung di list
+      const div = document.createElement("div");
+      div.className = "review-item";
+      div.innerHTML = `
+        <p><strong>${payload.name || "Anonim"}</strong> ⭐ ${payload.rating}/5</p>
+        <p>${payload.review}</p>
+        <small>${payload.marketplace} - ${payload.seller}</small>
+      `;
+      reviewList.prepend(div);
+
+      reviewForm.reset();
+      ratingInput.value = 0;
+      stars.forEach((s) => (s.style.color = "#ccc"));
     } catch (err) {
       console.error("Review error:", err);
-      reviewMessage.textContent = "❌ Gagal kirim review, coba lagi!";
+      alert("❌ Gagal kirim ulasan, coba lagi!");
     }
   });
 });
