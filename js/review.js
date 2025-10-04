@@ -1,92 +1,43 @@
 // review.js
-const API_URL = window.APP_CONFIG.API_URL;
-
 console.log("✅ review.js loaded");
 
-async function checkEmailStatus(email) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "check", email })
-  });
-  return res.json();
-}
-
-async function sendReview(payload) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  return res.json();
-}
-
-function showReviewMsg(msgElem, color, text) {
-  if (!msgElem) return;
-  msgElem.style.color = color;
-  msgElem.textContent = text;
-}
-
-function initReviewForm() {
-  const form = document.getElementById("review-form");
-  if (!form) {
-    console.warn("review.js: #review-form tidak ditemukan");
+document.addEventListener("DOMContentLoaded", () => {
+  const API_URL = window.Config?.API_URL;
+  if (!API_URL) {
+    console.error("❌ API_URL not found in config.js");
     return;
   }
 
-  const msgElem = document.getElementById("reviewMessage");
-  const storedEmail = localStorage.getItem("subscriberEmail");
+  const reviewForm = document.getElementById("review-form");
+  const reviewMessage = document.getElementById("reviewMessage");
 
-  if (!storedEmail) {
-    showReviewMsg(msgElem, "red", "⚠️ Email belum terdaftar. Silakan subscribe dulu.");
-    form.style.display = "none";
-    return;
-  }
+  if (!reviewForm || !reviewMessage) return;
 
-  checkEmailStatus(storedEmail).then(data => {
-    console.log("review.js: check status:", data);
-    if (data.status !== "approved") {
-      showReviewMsg(msgElem, "red", `⚠️ ${data.message || "Email belum tervalidasi."}`);
-      form.style.display = "none";
+  reviewForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("reviewEmail")?.value.trim();
+    const name = document.getElementById("reviewName")?.value.trim();
+    const seller = document.getElementById("reviewSeller")?.value.trim();
+    const content = document.getElementById("reviewContent")?.value.trim();
+
+    if (!email || !content) {
+      reviewMessage.textContent = "❌ Email & isi review wajib diisi";
       return;
     }
 
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, seller, content })
+      });
 
-      const name = form.querySelector("#reviewName").value.trim();
-      const product = form.querySelector("#reviewProduct").value.trim();
-      const seller = form.querySelector("#reviewSeller").value.trim();
-      const rating = form.querySelector("#reviewRating").value;
-      const review = form.querySelector("#reviewText").value.trim();
-
-      const payload = {
-        type: "review",
-        email: storedEmail,
-        name,
-        product,
-        seller,
-        rating,
-        review
-      };
-
-      showReviewMsg(msgElem, "#333", "⏳ Mengirim review...");
-      try {
-        const resp = await sendReview(payload);
-        console.log("review.js: response:", resp);
-
-        if (resp.status === "ok") {
-          showReviewMsg(msgElem, "green", "✅ Review berhasil dikirim!");
-          form.reset();
-        } else {
-          showReviewMsg(msgElem, "red", "❌ " + (resp.message || "Terjadi kesalahan."));
-        }
-      } catch (err) {
-        console.error("review.js error:", err);
-        showReviewMsg(msgElem, "red", "❌ Gagal mengirim review.");
-      }
-    });
+      const data = await res.json();
+      reviewMessage.textContent = data.message || "✅ Review berhasil dikirim!";
+    } catch (err) {
+      console.error("Review error:", err);
+      reviewMessage.textContent = "❌ Gagal kirim review, coba lagi!";
+    }
   });
-}
-
-document.addEventListener("DOMContentLoaded", initReviewForm);
+});
