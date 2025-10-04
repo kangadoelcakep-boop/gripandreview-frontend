@@ -2,7 +2,6 @@
 // gripandreview - subscribe.js
 // =======================
 
-// subscribe.js
 console.log("✅ subscribe.js loaded");
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Daftar form subscribe (mobile + desktop)
   const forms = [
     { form: "subscribe-form-mobile", input: "subEmail-mobile", message: "subMessage-mobile" },
     { form: "subscribe-form-desktop", input: "subEmail-desktop", message: "subMessage-desktop" }
@@ -27,24 +27,68 @@ document.addEventListener("DOMContentLoaded", () => {
     formEl.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = inputEl.value.trim();
-
       if (!email) {
         msgEl.textContent = "❌ Email tidak boleh kosong";
+        msgEl.style.color = "red";
         return;
       }
 
+      msgEl.textContent = "⏳ Memproses...";
+      msgEl.style.color = "black";
+
       try {
-        const res = await fetch(`${API_URL}/subscribe`, {
+        // Cek dulu status email
+        const checkRes = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ type: "check", email })
         });
+        const checkData = await checkRes.json();
+        console.log("📥 check response:", checkData);
 
-        const data = await res.json();
-        msgEl.textContent = data.message || "✅ Berhasil, cek email untuk konfirmasi!";
+        if (checkData.status === "ok" && checkData.state === "approved") {
+          msgEl.textContent = "✅ Email sudah terdaftar & aktif.";
+          msgEl.style.color = "green";
+          return;
+        }
+
+        if (checkData.status === "ok" && checkData.state === "pending") {
+          msgEl.textContent = "⚠️ Email sudah terdaftar, silakan cek email Anda untuk konfirmasi.";
+          msgEl.style.color = "orange";
+          return;
+        }
+
+        if (checkData.status === "not_found") {
+          // Kalau belum ada → daftar baru
+          const subRes = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "subscribe", email })
+          });
+          const subData = await subRes.json();
+          console.log("📤 subscribe response:", subData);
+
+          if (subData.status === "ok") {
+            msgEl.textContent = "✅ Berhasil daftar. Silakan cek email untuk konfirmasi.";
+            msgEl.style.color = "green";
+          } else if (subData.status === "exists") {
+            msgEl.textContent = "⚠️ Email sudah terdaftar, cek inbox Anda.";
+            msgEl.style.color = "orange";
+          } else {
+            msgEl.textContent = subData.message || "❌ Gagal daftar, coba lagi.";
+            msgEl.style.color = "red";
+          }
+          return;
+        }
+
+        // Kalau error lain
+        msgEl.textContent = checkData.message || "❌ Terjadi kesalahan.";
+        msgEl.style.color = "red";
+
       } catch (err) {
         console.error("Subscribe error:", err);
-        msgEl.textContent = "❌ Gagal kirim, coba lagi!";
+        msgEl.textContent = "❌ Gagal terhubung ke server.";
+        msgEl.style.color = "red";
       }
     });
   });
