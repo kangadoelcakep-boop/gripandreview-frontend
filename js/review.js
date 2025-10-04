@@ -5,10 +5,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const validationMessage = document.getElementById("validation-message");
   const reviewForm = document.getElementById("review-form");
 
+  // ganti URL backend sesuai index.js worker / Apps Script kamu
+  const API_URL = window.Config?.API_URL || "https://script.google.com/macros/s/AKfycbxxxx/exec";
+
+  // --- Handler validasi email ---
   if (validateForm) {
     validateForm.addEventListener("submit", async (e) => {
-      e.preventDefault(); // ⛔ cegah refresh halaman
-      console.log("✅ Validasi form submit handler jalan");
+      e.preventDefault(); // cegah refresh
+      console.log("✅ Validasi form submit jalan");
 
       const email = document.getElementById("validate-email").value.trim();
 
@@ -19,27 +23,40 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        // 🔹 Panggil API validasi email (dummy dulu)
-        console.log("🔍 Cek email:", email);
+        // 🔹 Panggil API validasi email
+        const res = await fetch(`${API_URL}/validate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
 
-        // misal sukses → tampilkan form review
-        validationMessage.textContent = "✅ Email valid. Silakan tulis review.";
-        validationMessage.style.color = "green";
-        reviewForm.style.display = "block";
+        const data = await res.json();
+        console.log("📩 Hasil validasi:", data);
 
+        if (data.status === "valid") {
+          validationMessage.textContent = "✅ Email valid. Silakan tulis review.";
+          validationMessage.style.color = "green";
+          reviewForm.style.display = "block"; // tampilkan form review
+        } else if (data.status === "pending") {
+          validationMessage.textContent = "⏳ Cek email Anda untuk konfirmasi terlebih dahulu.";
+          validationMessage.style.color = "orange";
+        } else {
+          validationMessage.textContent = "❌ Email belum terdaftar. Silakan Join dulu.";
+          validationMessage.style.color = "red";
+        }
       } catch (err) {
         console.error("❌ Error validasi email:", err);
-        validationMessage.textContent = "❌ Terjadi error saat validasi.";
+        validationMessage.textContent = "❌ Gagal terhubung ke server.";
         validationMessage.style.color = "red";
       }
     });
   }
 
-  // --- Handler review form ---
+  // --- Handler kirim review ---
   if (reviewForm) {
     reviewForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      console.log("✍️ Review form submit handler jalan");
+      console.log("✍️ Review form submit jalan");
 
       const nama = document.getElementById("nama").value.trim();
       const rating = document.getElementById("rating").value;
@@ -53,13 +70,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        console.log("📤 Kirim review:", { nama, rating, reviewText, marketplace, seller });
-        alert("✅ Review berhasil dikirim!");
-        reviewForm.reset();
-        document.getElementById("rating").value = 0;
+        const res = await fetch(`${API_URL}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nama, rating, reviewText, marketplace, seller })
+        });
+
+        const data = await res.json();
+        console.log("📤 Hasil kirim review:", data);
+
+        if (data.success) {
+          alert("✅ Review berhasil dikirim!");
+          reviewForm.reset();
+          document.getElementById("rating").value = 0;
+        } else {
+          alert("❌ Gagal mengirim review: " + (data.message || ""));
+        }
       } catch (err) {
         console.error("❌ Error submit review:", err);
-        alert("❌ Gagal mengirim review.");
+        alert("❌ Gagal terhubung ke server.");
       }
     });
   }
