@@ -80,10 +80,12 @@ async function handleFormSubmit(form) {
 
     if (data.status === "ok") {
       showMsg(msgElem, "green", "✅ Subscribe berhasil! Cek email Anda untuk validasi.");
+      showMsg(msgElem, "green", "⚠️ Jika belum ada, coba refresh email anda.");
       localStorage.setItem("subscriberEmail", email);
       form.reset();
     } else if (data.status === "exists") {
       showMsg(msgElem, "orange", "⚠️ Email sudah terdaftar. Jika belum validasi, cek inbox Anda.");
+      showMsg(msgElem, "green", "⚠️ Jika belum ada, coba refresh email anda.");
       localStorage.setItem("subscriberEmail", email);
     } else {
       showMsg(msgElem, "red", "❌ " + (data.message || "Terjadi kesalahan."));
