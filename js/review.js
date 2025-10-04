@@ -5,17 +5,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const validationMessage = document.getElementById("validation-message");
   const reviewForm = document.getElementById("review-form");
 
+  console.log("🔍 Cek element:", {
+    validateForm,
+    validationMessage,
+    reviewForm
+  });
+
   const API_URL = window.Config?.API_URL || "https://script.google.com/macros/s/AKfycbwjJQ69NNajRuYS2_w2mZlK7zY3CHs1pbY2vJvOisRtmMZSwEZJIPcn9u4djtUCe1HqPg/exec";
 
   /* -------------------------
    *  VALIDASI EMAIL
    * ------------------------- */
   if (validateForm) {
+    console.log("✅ Event listener validasi ditambahkan");
     validateForm.addEventListener("submit", async (e) => {
-      e.preventDefault(); // cegah reload halaman
+      e.preventDefault();
       console.log("✅ Validasi form submit jalan");
 
-      const email = document.getElementById("validate-email").value.trim();
+      const emailInput = document.getElementById("validate-email");
+      if (!emailInput) {
+        console.error("❌ Input email tidak ditemukan");
+        return;
+      }
+
+      const email = emailInput.value.trim();
       if (!email) {
         validationMessage.textContent = "⚠️ Email wajib diisi";
         validationMessage.style.color = "red";
@@ -52,57 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
         validationMessage.style.color = "red";
       }
     });
-  }
-
-  /* -------------------------
-   *  KIRIM REVIEW
-   * ------------------------- */
-  if (reviewForm) {
-    reviewForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      console.log("✍️ Review form submit jalan");
-
-      const nama = document.getElementById("nama").value.trim();
-      const rating = document.getElementById("rating").value;
-      const reviewText = document.getElementById("reviewText").value.trim();
-      const marketplace = document.getElementById("marketplace").value;
-      const seller = document.getElementById("seller").value.trim();
-
-      if (!nama || !rating || !reviewText || !marketplace || !seller) {
-        alert("⚠️ Semua field wajib diisi.");
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_URL}/review`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "review",      // penting! backend butuh "type"
-            name: nama,
-            email: document.getElementById("validate-email").value.trim(),
-            rating: parseInt(rating),
-            text: reviewText,
-            marketplace,
-            seller,
-            postUrl: window.location.href
-          })
-        });
-
-        const data = await res.json();
-        console.log("📤 Hasil kirim review:", data);
-
-        if (data.status === "ok") {
-          alert("✅ Review berhasil dikirim!");
-          reviewForm.reset();
-          document.getElementById("rating").value = 0;
-        } else {
-          alert("❌ Gagal mengirim review: " + (data.message || ""));
-        }
-      } catch (err) {
-        console.error("❌ Error submit review:", err);
-        alert("❌ Gagal terhubung ke server.");
-      }
-    });
+  } else {
+    console.error("❌ Form email-validate-form tidak ditemukan di DOM");
   }
 });
