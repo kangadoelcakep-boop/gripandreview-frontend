@@ -1,13 +1,8 @@
 // review.js
-console.log("✅ review.js loaded");
-
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = window.Config?.API_URL;
-  if (!API_URL) {
-    console.error("❌ API_URL not found in config.js");
-    return;
-  }
-  // Ambil elemen
+  console.log("✅ review.js loaded");
+
+  // --- Ambil elemen ---
   const emailForm = document.getElementById("email-validate-form");
   const emailInput = document.getElementById("validate-email");
   const validationMessage = document.getElementById("validation-message");
@@ -15,18 +10,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const starContainer = document.getElementById("star-rating");
   const ratingInput = document.getElementById("rating");
 
-  // Debug cek elemen
   console.log("🔍 Elemen check:", {
     emailForm,
     emailInput,
     validationMessage,
     reviewForm,
     starContainer,
-    ratingInput
+    ratingInput,
   });
 
   // ---------- Step 1: Validasi Email ----------
-  if (emailForm && emailInput && validationMessage) {
+  if (emailForm) {
     emailForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = emailInput.value.trim();
@@ -36,36 +30,30 @@ document.addEventListener("DOMContentLoaded", () => {
       validationMessage.style.color = "black";
 
       try {
+        // Gunakan subscribe API untuk cek status
         const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "validateEmail", email })
+          body: JSON.stringify({ type: "subscribe", email }),
         });
 
-        console.log("🌐 Response status:", res.status);
         const data = await res.json();
         console.log("📥 Validation response:", data);
 
         if (data.status === "approved") {
           validationMessage.textContent = "✅ Email valid, silakan isi review.";
           validationMessage.style.color = "green";
-          if (reviewForm) reviewForm.style.display = "block";
+          reviewForm.style.display = "block";
         } else if (data.status === "pending") {
           validationMessage.textContent =
-            "⚠️ Email sudah terdaftar, silakan cek email Anda untuk konfirmasi.";
+            "⚠️ Email sudah terdaftar, cek email Anda untuk konfirmasi.";
           validationMessage.style.color = "orange";
-          if (reviewForm) reviewForm.style.display = "none";
-        } else if (data.status === "not_found") {
+          reviewForm.style.display = "none";
+        } else {
           validationMessage.textContent =
-            "❌ Email belum terdaftar. Kami sudah mengirim link konfirmasi ke email Anda.";
+            "❌ Email belum terdaftar, kami sudah kirim link konfirmasi.";
           validationMessage.style.color = "red";
-
-          console.log("🆕 Auto-subscribe:", email);
-          await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "subscribe", email })
-          });
+          reviewForm.style.display = "none";
         }
       } catch (err) {
         console.error("❌ Validation error:", err);
@@ -73,25 +61,19 @@ document.addEventListener("DOMContentLoaded", () => {
         validationMessage.style.color = "red";
       }
     });
-  } else {
-    console.warn("⚠️ Email validation form tidak ditemukan di DOM!");
   }
 
   // ---------- Step 2: Rating Bintang ----------
-  if (starContainer && ratingInput) {
+  if (starContainer) {
     starContainer.querySelectorAll("span").forEach((star) => {
       star.addEventListener("click", () => {
         const value = parseInt(star.getAttribute("data-value"), 10);
         ratingInput.value = value;
-        console.log("⭐ Rating dipilih:", value);
-
         starContainer.querySelectorAll("span").forEach((s, i) => {
           s.style.color = i < value ? "gold" : "gray";
         });
       });
     });
-  } else {
-    console.warn("⚠️ Star rating container tidak ditemukan di DOM!");
   }
 
   // ---------- Step 3: Submit Review ----------
@@ -101,12 +83,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const reviewData = {
         type: "submitReview",
-        nama: document.getElementById("nama")?.value.trim(),
-        email: emailInput?.value.trim(), // ambil dari input validasi email
-        rating: document.getElementById("rating")?.value,
-        reviewText: document.getElementById("reviewText")?.value.trim(),
-        marketplace: document.getElementById("marketplace")?.value,
-        seller: document.getElementById("seller")?.value.trim(),
+        nama: document.getElementById("nama").value.trim(),
+        email: emailInput.value.trim(), // pakai email yg sudah divalidasi
+        rating: ratingInput.value,
+        reviewText: document.getElementById("reviewText").value.trim(),
+        marketplace: document.getElementById("marketplace").value,
+        seller: document.getElementById("seller").value.trim(),
       };
 
       console.log("📝 Submitting review:", reviewData);
@@ -118,7 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify(reviewData),
         });
 
-        console.log("🌐 Review response status:", res.status);
         const data = await res.json();
         console.log("📥 Review submit response:", data);
 
@@ -137,7 +118,5 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("❌ Terjadi kesalahan, coba lagi.");
       }
     });
-  } else {
-    console.warn("⚠️ Review form tidak ditemukan di DOM!");
   }
 });
