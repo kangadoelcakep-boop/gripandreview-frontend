@@ -1,138 +1,65 @@
-// =======================
-// gripandreview - review.js
-// =======================
-
 console.log("🚀 review.js start");
 
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = window.Config?.API_URL;
-  if (!API_URL) {
-    console.error("❌ API_URL not found in config.js");
-    return;
-  }
-
-  // Elemen
-  const emailForm = document.getElementById("email-validate-form");
-  const emailInput = document.getElementById("validate-email");
+  const validateForm = document.getElementById("email-validate-form");
   const validationMessage = document.getElementById("validation-message");
   const reviewForm = document.getElementById("review-form");
-  const starContainer = document.getElementById("star-rating");
-  const ratingInput = document.getElementById("rating");
 
-  console.log("🔍 Elemen check:", {
-    emailForm,
-    emailInput,
-    validationMessage,
-    reviewForm,
-    starContainer,
-    ratingInput,
-  });
+  if (validateForm) {
+    validateForm.addEventListener("submit", async (e) => {
+      e.preventDefault(); // ⛔ cegah refresh halaman
+      console.log("✅ Validasi form submit handler jalan");
 
-  // ---------- Step 1: Validasi Email ----------
-  if (emailForm) {
-    emailForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = emailInput.value.trim();
-      console.log("📩 Validasi email:", email);
+      const email = document.getElementById("validate-email").value.trim();
 
-      validationMessage.textContent = "⏳ Memeriksa email...";
-      validationMessage.style.color = "black";
+      if (!email) {
+        validationMessage.textContent = "⚠️ Email wajib diisi";
+        validationMessage.style.color = "red";
+        return;
+      }
 
       try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "check", email }),
-        });
+        // 🔹 Panggil API validasi email (dummy dulu)
+        console.log("🔍 Cek email:", email);
 
-        const data = await res.json();
-        console.log("📥 Validation response:", data);
+        // misal sukses → tampilkan form review
+        validationMessage.textContent = "✅ Email valid. Silakan tulis review.";
+        validationMessage.style.color = "green";
+        reviewForm.style.display = "block";
 
-        if (data.status === "approved") {
-          validationMessage.textContent = "✅ Email valid, silakan isi review.";
-          validationMessage.style.color = "green";
-          reviewForm.style.display = "block";
-        } else if (data.status === "pending") {
-          validationMessage.textContent =
-            "⚠️ Email sudah terdaftar, silakan cek email Anda untuk konfirmasi.";
-          validationMessage.style.color = "orange";
-          reviewForm.style.display = "none";
-        } else if (data.status === "not_found") {
-          validationMessage.textContent =
-            "❌ Email belum terdaftar. Kami sudah mengirim link konfirmasi ke email Anda.";
-          validationMessage.style.color = "red";
-
-          // auto-subscribe user
-          await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "subscribe", email }),
-          });
-        } else {
-          validationMessage.textContent = data.message || "❌ Email tidak valid.";
-          validationMessage.style.color = "red";
-        }
       } catch (err) {
-        console.error("Validation error:", err);
-        validationMessage.textContent = "❌ Terjadi kesalahan, coba lagi.";
+        console.error("❌ Error validasi email:", err);
+        validationMessage.textContent = "❌ Terjadi error saat validasi.";
         validationMessage.style.color = "red";
       }
     });
   }
 
-  // ---------- Step 2: Rating Bintang ----------
-  if (starContainer) {
-    starContainer.querySelectorAll("span").forEach((star) => {
-      star.addEventListener("click", () => {
-        const value = parseInt(star.getAttribute("data-value"));
-        ratingInput.value = value;
-        starContainer.querySelectorAll("span").forEach((s, i) => {
-          s.style.color = i < value ? "gold" : "gray";
-        });
-      });
-    });
-  }
-
-  // ---------- Step 3: Submit Review ----------
+  // --- Handler review form ---
   if (reviewForm) {
     reviewForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      console.log("✍️ Review form submit handler jalan");
 
-      const reviewData = {
-        type: "review",
-        nama: document.getElementById("nama").value.trim(),
-        email: emailInput.value.trim(), // ambil dari validasi pertama
-        rating: document.getElementById("rating").value,
-        review: document.getElementById("reviewText").value.trim(),
-        marketplace: document.getElementById("marketplace").value,
-        seller: document.getElementById("seller").value.trim(),
-      };
+      const nama = document.getElementById("nama").value.trim();
+      const rating = document.getElementById("rating").value;
+      const reviewText = document.getElementById("reviewText").value.trim();
+      const marketplace = document.getElementById("marketplace").value;
+      const seller = document.getElementById("seller").value.trim();
 
-      console.log("📝 Submitting review:", reviewData);
+      if (!nama || !rating || !reviewText || !marketplace || !seller) {
+        alert("⚠️ Semua field wajib diisi.");
+        return;
+      }
 
       try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reviewData),
-        });
-
-        const data = await res.json();
-        console.log("📤 Review submit response:", data);
-
-        if (data.status === "ok") {
-          alert("✅ Review berhasil dikirim, menunggu moderasi.");
-          reviewForm.reset();
-          reviewForm.style.display = "none";
-          validationMessage.textContent =
-            "🙏 Terima kasih! Review Anda akan ditampilkan setelah moderasi.";
-          validationMessage.style.color = "green";
-        } else {
-          alert("⚠️ Gagal mengirim review, coba lagi.");
-        }
+        console.log("📤 Kirim review:", { nama, rating, reviewText, marketplace, seller });
+        alert("✅ Review berhasil dikirim!");
+        reviewForm.reset();
+        document.getElementById("rating").value = 0;
       } catch (err) {
-        console.error("Submit review error:", err);
-        alert("❌ Terjadi kesalahan, coba lagi.");
+        console.error("❌ Error submit review:", err);
+        alert("❌ Gagal mengirim review.");
       }
     });
   }
