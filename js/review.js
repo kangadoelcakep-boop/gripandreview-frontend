@@ -1,6 +1,15 @@
-// review.js
+// =======================
+// gripandreview - review.js
+// =======================
+
+console.log("🚀 review.js start");
+
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 review.js start");
+  const API_URL = window.Config?.API_URL;
+  if (!API_URL) {
+    console.error("❌ API_URL not found in config.js");
+    return;
+  }
 
   // Elemen
   const emailForm = document.getElementById("email-validate-form");
@@ -9,11 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const reviewForm = document.getElementById("review-form");
   const starContainer = document.getElementById("star-rating");
   const ratingInput = document.getElementById("rating");
-
-  if (!API_URL) {
-    console.error("❌ API_URL belum didefinisikan di config.js");
-    return;
-  }
 
   console.log("🔍 Elemen check:", {
     emailForm,
@@ -24,16 +28,15 @@ document.addEventListener("DOMContentLoaded", () => {
     ratingInput,
   });
 
-  /* ------------------ Step 1: Validasi Email ------------------ */
+  // ---------- Step 1: Validasi Email ----------
   if (emailForm) {
     emailForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = emailInput.value.trim();
-      if (!email) return;
+      console.log("📩 Validasi email:", email);
 
       validationMessage.textContent = "⏳ Memeriksa email...";
       validationMessage.style.color = "black";
-      console.log("📩 Validasi email:", email);
 
       try {
         const res = await fetch(API_URL, {
@@ -45,39 +48,39 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         console.log("📥 Validation response:", data);
 
-        if (data.status === "ok" && data.state === "approved") {
+        if (data.status === "approved") {
           validationMessage.textContent = "✅ Email valid, silakan isi review.";
           validationMessage.style.color = "green";
-          emailForm.style.display = "none";
           reviewForm.style.display = "block";
-        } else if (data.status === "ok" && data.state === "pending") {
+        } else if (data.status === "pending") {
           validationMessage.textContent =
-            "⚠️ Email sudah terdaftar, tapi belum dikonfirmasi. Silakan cek inbox Anda.";
+            "⚠️ Email sudah terdaftar, silakan cek email Anda untuk konfirmasi.";
           validationMessage.style.color = "orange";
+          reviewForm.style.display = "none";
         } else if (data.status === "not_found") {
           validationMessage.textContent =
-            "❌ Email belum terdaftar. Kami mendaftarkan Anda terlebih dahulu, cek email konfirmasi.";
+            "❌ Email belum terdaftar. Kami sudah mengirim link konfirmasi ke email Anda.";
           validationMessage.style.color = "red";
 
-          // Auto-subscribe jika belum ada
+          // auto-subscribe user
           await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ type: "subscribe", email }),
           });
         } else {
-          validationMessage.textContent = "❌ Terjadi kesalahan validasi.";
+          validationMessage.textContent = data.message || "❌ Email tidak valid.";
           validationMessage.style.color = "red";
         }
       } catch (err) {
         console.error("Validation error:", err);
-        validationMessage.textContent = "❌ Gagal koneksi ke server.";
+        validationMessage.textContent = "❌ Terjadi kesalahan, coba lagi.";
         validationMessage.style.color = "red";
       }
     });
   }
 
-  /* ------------------ Step 2: Rating Bintang ------------------ */
+  // ---------- Step 2: Rating Bintang ----------
   if (starContainer) {
     starContainer.querySelectorAll("span").forEach((star) => {
       star.addEventListener("click", () => {
@@ -90,23 +93,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ------------------ Step 3: Submit Review ------------------ */
+  // ---------- Step 3: Submit Review ----------
   if (reviewForm) {
     reviewForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const reviewData = {
         type: "review",
-        name: document.getElementById("nama").value.trim(),
-        email: emailInput.value.trim(), // ambil dari email awal
-        rating: parseInt(document.getElementById("rating").value),
-        text: document.getElementById("reviewText").value.trim(),
+        nama: document.getElementById("nama").value.trim(),
+        email: emailInput.value.trim(), // ambil dari validasi pertama
+        rating: document.getElementById("rating").value,
+        review: document.getElementById("reviewText").value.trim(),
         marketplace: document.getElementById("marketplace").value,
         seller: document.getElementById("seller").value.trim(),
-        postUrl: window.location.href, // simpan URL post
       };
 
-      console.log("📝 Submit review:", reviewData);
+      console.log("📝 Submitting review:", reviewData);
 
       try {
         const res = await fetch(API_URL, {
@@ -114,8 +116,9 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(reviewData),
         });
+
         const data = await res.json();
-        console.log("📥 Review response:", data);
+        console.log("📤 Review submit response:", data);
 
         if (data.status === "ok") {
           alert("✅ Review berhasil dikirim, menunggu moderasi.");
@@ -125,11 +128,11 @@ document.addEventListener("DOMContentLoaded", () => {
             "🙏 Terima kasih! Review Anda akan ditampilkan setelah moderasi.";
           validationMessage.style.color = "green";
         } else {
-          alert("⚠️ Gagal mengirim review: " + data.message);
+          alert("⚠️ Gagal mengirim review, coba lagi.");
         }
       } catch (err) {
-        console.error("Review submit error:", err);
-        alert("❌ Terjadi kesalahan saat mengirim review.");
+        console.error("Submit review error:", err);
+        alert("❌ Terjadi kesalahan, coba lagi.");
       }
     });
   }
