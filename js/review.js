@@ -1,4 +1,6 @@
 // review.js
+console.log("🚀 review.js start");
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ review.js loaded");
 
